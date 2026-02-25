@@ -27,12 +27,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST'
             $_POST['statut']
         )
     ) {
-        header('Location: /joueur');
+        header('Location: ' . BASE_PATH . '/joueur');
     } else {
         error_log("Erreur lors de la création du joueur");
     }
 } else {
-    $formulaire = new Formulaire("/joueur/ajouter");
+    $formulaire = new Formulaire(BASE_PATH . "/joueur/ajouter");
     $formulaire->setText("Nom", "nom");
     $formulaire->setText("Prenom", "prenom");
     $formulaire->setText("Numéro de license", "numeroDeLicence", "00042");

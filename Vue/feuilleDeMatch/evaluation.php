@@ -28,11 +28,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST'
             break;
     }
 
-    header('Location: /feuilleDeMatch/evaluation?id=' . $_POST['rencontreId']);
+    header('Location: ' . BASE_PATH . '/feuilleDeMatch/evaluation?id=' . $_POST['rencontreId']);
     die();
 else :
     if (!isset($_GET['id'])) :
-        header("Location: /rencontre"); die();
+        header("Location: " . BASE_PATH . "/rencontre"); die();
     else :
         $feuilleDeMatch = $controleur->getFeuilleDeMatch($_GET['id']);
 ?>
@@ -77,7 +77,7 @@ else :
                         $selectedValue
                 );
                 ?>
-                <form action="/feuilleDeMatch/evaluation" method="post">
+                <form action="<?= BASE_PATH ?>/feuilleDeMatch/evaluation" method="post">
                     <tr>
                         <input type="hidden" name="rencontreId" value="<?php if($participant !== null) echo $participant->getRencontre()->getRencontreId(); ?>" />
                         <input type="hidden" name="participationId" value="<?php if($participant !== null) echo $participant->getParticipationId(); ?>" />

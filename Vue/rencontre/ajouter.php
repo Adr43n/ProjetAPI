@@ -22,12 +22,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST'
             RencontreLieu::fromName($_POST['lieu'])
         )
     ) {
-        header('Location: /rencontre');
+        header('Location: ' . BASE_PATH . '/rencontre');
     }else{
         error_log("Erreur lors de la création de la rencontre");
     }
 } else {
-    $formulaire = new Formulaire("/rencontre/ajouter");
+    $formulaire = new Formulaire(BASE_PATH . "/rencontre/ajouter");
     $formulaire->setDateTime("Date", "dateHeure", date("Y-m-d H:i"));
     $formulaire->setText("Equipe adverse", "equipeAdverse");
     $formulaire->setText("Adresse", "adresse");

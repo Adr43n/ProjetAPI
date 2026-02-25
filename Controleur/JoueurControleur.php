@@ -10,11 +10,9 @@ use R301\Modele\Joueur\JoueurStatut;
 class JoueurControleur {
     private static ?JoueurControleur $instance = null;
     private readonly JoueurDAO $joueurs;
-    private readonly ParticipationControleur $participationControleur;
 
     private function __construct() {
         $this->joueurs = JoueurDAO::getInstance();
-        $this->participationControleur = ParticipationControleur::getInstance();
     }
 
     public static function getInstance(): JoueurControleur {
@@ -56,7 +54,7 @@ class JoueurControleur {
         $joueursSelectionnables = [];
 
         foreach ($joueursActifs as $joueur) {
-            if (!$this->participationControleur->lejoueurEstDejaSurLaFeuilleDeMatch($rencontreId, $joueur->getJoueurId())) {
+            if (!ParticipationControleur::getInstance()->lejoueurEstDejaSurLaFeuilleDeMatch($rencontreId, $joueur->getJoueurId())) {
                 $joueursSelectionnables[] = $joueur;
             }
         }

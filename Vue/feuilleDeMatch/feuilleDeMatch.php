@@ -10,7 +10,7 @@ $controleur = ParticipationControleur::getInstance();
 $joueurControleur = JoueurControleur::getInstance();
 
 if (!isset($_GET['id'])) :
-    header("Location: /rencontre");
+    header("Location: " . BASE_PATH . "/rencontre");
 else :
     $feuilleDeMatch = $controleur->getFeuilleDeMatch($_GET['id']);
     $joueursSelectionnables = $joueurControleur->listerLesJoueursSelectionnablesPourUnMatch($_GET['id']);
@@ -63,7 +63,7 @@ else :
                         $selectedValue,
                 );
         ?>
-        <form action="/feuilleDeMatch/modifier" method="post">
+        <form action="<?= BASE_PATH ?>/feuilleDeMatch/modifier" method="post">
             <tr>
                 <input type="hidden" name="participationId" value="<?php if($participant !== null) echo $participant->getParticipationId(); ?>" />
                 <input type="hidden" name="poste" value="<?php echo $poste->name ?>" />

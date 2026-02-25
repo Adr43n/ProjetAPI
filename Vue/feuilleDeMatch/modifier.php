@@ -46,11 +46,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST'
             break;
         default:
     }
-    header('Location: /feuilleDeMatch/feuilleDeMatch?id='.$_POST['rencontreId']);
+    header('Location: ' . BASE_PATH . '/feuilleDeMatch/feuilleDeMatch?id='.$_POST['rencontreId']);
 } else {
     if (isset($_POST['rencontreId'])) {
-        header('Location: /feuilleDeMatch/feuilleDeMatch?id='.$_POST['rencontreId']);
+        header('Location: ' . BASE_PATH . '/feuilleDeMatch/feuilleDeMatch?id='.$_POST['rencontreId']);
     } else {
-        header('Location: /rencontre');
+        header('Location: ' . BASE_PATH . '/rencontre');
     }
 }

@@ -24,17 +24,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST'
             RencontreLieu::fromName($_POST['lieu'])
         )
     ) {
-        header('Location: /rencontre');
+        header('Location: ' . BASE_PATH . '/rencontre');
     }else{
         error_log("Erreur lors de la modification de la rencontre");
     }
 } else {
     if (!isset($_GET['id'])) {
-        header("Location: /rencontre");
+        header("Location: " . BASE_PATH . "/rencontre");
     } else {
         $rencontre = $controleur->getRenconterById($_GET['id']);
 
-        $formulaire = new Formulaire("/rencontre/modifier?id=" . $rencontre->getRencontreId());
+        $formulaire = new Formulaire(BASE_PATH . "/rencontre/modifier?id=" . $rencontre->getRencontreId());
         $formulaire->setDateTime("Date", "dateHeure", date("Y-m-d H:i"), $rencontre->getDateEtHeure()->format("Y-m-d H:i"));
         $formulaire->setText("Equipe adverse", "equipeAdverse", "", $rencontre->getEquipeAdverse());
         $formulaire->setText("Adresse", "adresse", "", $rencontre->getAdresse());

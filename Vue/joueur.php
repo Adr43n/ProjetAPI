@@ -13,7 +13,7 @@ if (isset($_GET['recherche']) || isset($_GET['statut'])) {
 
 <h1>Joueurs</h1>
 <div class="container">
-    <form action="joueur" method="get">
+    <form action="<?= BASE_PATH ?>/joueur" method="get">
         <div class="row">
             <div class="invCol-80">
                 <input type="search" name="recherche" placeholder="Rechercher" <?= isset($_GET['recherche']) ? 'value="'.$_GET['recherche'].'"' : '' ?>/>
@@ -59,9 +59,9 @@ if (isset($_GET['recherche']) || isset($_GET['statut'])) {
                 <td><?php echo $joueur->getPoidsEnKg() ?> kg</td>
                 <td><?php echo $joueur->getStatut()->name ?></td>
                 <td class="actions">
-                    <form action="joueur/modifier" method="get"><button class="update" type="submit" name="id" value="<?php echo $joueur->getJoueurId() ?>">Modifier</button></form>
-                    <form action="joueur/supprimer" method="post"><button class="delete" type="submit" name="id" value="<?php echo $joueur->getJoueurId() ?>"  onclick="return confirm('Voulez-vous vraiment supprimer ce joueur?')">Supprimer</button></form>
-                    <form action="joueur/commentaire" method="get"><button class="info" type="submit" name="id" value="<?php echo $joueur->getJoueurId() ?>">Commentaires</button></form>
+                    <form action="<?= BASE_PATH ?>/joueur/modifier" method="get"><button class="update" type="submit" name="id" value="<?php echo $joueur->getJoueurId() ?>">Modifier</button></form>
+                    <form action="<?= BASE_PATH ?>/joueur/supprimer" method="post"><button class="delete" type="submit" name="id" value="<?php echo $joueur->getJoueurId() ?>"  onclick="return confirm('Voulez-vous vraiment supprimer ce joueur?')">Supprimer</button></form>
+                    <form action="<?= BASE_PATH ?>/joueur/commentaire" method="get"><button class="info" type="submit" name="id" value="<?php echo $joueur->getJoueurId() ?>">Commentaires</button></form>
                 </td>
             </tr>
         <?php } ?>

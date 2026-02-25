@@ -12,4 +12,4 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
-header('Location: /joueur');
+header('Location: ' . BASE_PATH . '/joueur');

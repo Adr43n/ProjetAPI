@@ -16,7 +16,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST'
 }
 
 if (isset($_POST['joueurId'])) {
-    header('Location: /joueur/commentaire?id='.$_POST['joueurId']);
+    header('Location: ' . BASE_PATH . '/joueur/commentaire?id='.$_POST['joueurId']);
 } else {
-    header('Location: /joueur');
+    header('Location: ' . BASE_PATH . '/joueur');
 }

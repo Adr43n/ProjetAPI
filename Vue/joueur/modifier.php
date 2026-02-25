@@ -29,17 +29,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST'
             $_POST['statut']
         )
     ) {
-        header('Location: /joueur');
+        header('Location: ' . BASE_PATH . '/joueur');
     }else{
         error_log("Erreur lors de la modification du joueur");
     }
 } else {
     if (!isset($_GET['id'])) {
-        header("Location: /joueur");
+        header("Location: " . BASE_PATH . "/joueur");
     } else {
         $joueur = $controleur->getJoueurById($_GET['id']);
 
-        $formulaire = new Formulaire("/joueur/modifier?id=".$joueur->getJoueurId());
+        $formulaire = new Formulaire(BASE_PATH . "/joueur/modifier?id=".$joueur->getJoueurId());
         $formulaire->setText("Nom", "nom", "", $joueur->getNom());
         $formulaire->setText("Prenom", "prenom", "", $joueur->getPrenom());
         $formulaire->setText("Numéro de license", "numeroDeLicence", "00042", $joueur->getNumeroDeLicence());
