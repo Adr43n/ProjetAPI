@@ -1,7 +1,5 @@
 <?php
 
-use R301\Controleur\CommentaireControleur;
-use R301\Controleur\JoueurControleur;
 use R301\Vue\Component\Formulaire;
 
 if (!isset($_GET['id'])) {
@@ -9,11 +7,11 @@ if (!isset($_GET['id'])) {
     die();
 }
 
-$controleurJoueur = JoueurControleur::getInstance();
-$joueur = $controleurJoueur->getJoueurById($_GET['id']);
+$resultJoueur = callAPI('/api/joueurs/' . $_GET['id']);
+$joueur = $resultJoueur['data'];
 ?>
 
-<h1>Commentaires de <?php echo $joueur->toString(); ?></h1>
+<h1>Commentaires de <?php echo $joueur['prenom'] . ' ' . $joueur['nom']; ?></h1>
 
 <?php
 $form = new Formulaire(BASE_PATH . "/joueur/commentaire/ajouter");
@@ -22,10 +20,10 @@ $form->addHiddenInput("joueurId", $_GET['id']);
 $form->addButton("submit", "create", "Publier le commentaire", "Publier le commentaire");
 echo $form;
 
-$controleurCommentaire = CommentaireControleur::getInstance();
-$commentaires = $controleurCommentaire->listerLesCommentairesDuJoueur($joueur);
+$resultCommentaires = callAPI('/api/joueurs/' . $_GET['id'] . '/commentaires');
+$commentaires = $resultCommentaires['data'];
 
-usort($commentaires, function ($a, $b) { return $b->getDate() <=> $a->getDate(); });
+usort($commentaires, function ($a, $b) { return strtotime($b['date']) <=> strtotime($a['date']); });
 
 ?>
 <div class="container">
@@ -37,11 +35,11 @@ usort($commentaires, function ($a, $b) { return $b->getDate() <=> $a->getDate();
         </tr>
         <?php foreach ($commentaires as $commentaire): ?>
         <form action="<?= BASE_PATH ?>/joueur/commentaire/supprimer" method="post">
-            <input type="hidden" name="commentaireId" value="<?php echo $commentaire->getCommentaireId(); ?>" />
+            <input type="hidden" name="commentaireId" value="<?php echo $commentaire['commentaire_id']; ?>" />
             <input type="hidden" name="joueurId" value="<?php echo $_GET['id']; ?>" />
             <tr>
-                <td><?php echo $commentaire->getDate()->format('d/m/Y H:i'); ?></td>
-                <td><?php echo $commentaire->getContenu(); ?></td>
+                <td><?php echo date('d/m/Y H:i', strtotime($commentaire['date'])); ?></td>
+                <td><?php echo $commentaire['contenu']; ?></td>
                 <td class="actions">
                     <button class="delete" type="submit">Supprimer</button>
                 </td>

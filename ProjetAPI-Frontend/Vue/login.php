@@ -1,17 +1,19 @@
 
 <?php
 
-use R301\Controleur\UtilisateurControleur;
-use R301\Modele\Utilisateur\UtilisateurDAO;
+if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST["email"]) && isset($_POST["password"])) {
+    $result = callAuthAPI('/login.php', [
+        'email' => trim($_POST["email"]),
+        'password' => trim($_POST["password"])
+    ]);
 
-if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST["username"]) && isset($_POST["password"])) {
-    $controleur = UtilisateurControleur::getInstance();
-
-    if ($controleur->seConnecter(trim($_POST["username"]), trim($_POST["password"]))) {
+    if ($result['success']) {
+        $_SESSION['username'] = $result['user']['email'];
+        $_SESSION['user'] = $result['user'];
         header("Location: " . BASE_PATH . "/joueur");
         die();
     } else {
-        $erreur = "Le nom d'Utilisateur ou le mot de passe est incorrect";
+        $erreur = "L'email ou le mot de passe est incorrect";
     }
 }
 ?>
@@ -23,10 +25,10 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST["username"]) && isset($
             <form action="<?= BASE_PATH ?>/login" method="post">
                 <div class="row">
                     <div class="col-20">
-                        <label for="username">Username : </label>
+                        <label for="email">Email : </label>
                     </div>
                     <div class="col-80">
-                        <input type="text" id="username" name="username"/><br> 
+                        <input type="email" id="email" name="email" required/><br> 
                     </div>
                 </div> 
                 <div class="row">
@@ -34,7 +36,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST["username"]) && isset($
                         <label for="password">Password : </label>
                     </div>
                     <div class="col-80">
-                        <input type="password" id="pass" name="password"/><br>
+                        <input type="password" id="pass" name="password" required/><br>
                     </div>
                 </div>
                 <div class="row">

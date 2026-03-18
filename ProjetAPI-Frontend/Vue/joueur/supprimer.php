@@ -1,12 +1,10 @@
 <?php
 
-use R301\Controleur\JoueurControleur;
-
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (isset($_POST['id'])) {
-        $controleur = JoueurControleur::getInstance();
+        $result = callAPI('/api/joueurs/' . $_POST['id'], 'DELETE');
 
-        if (!$controleur->supprimerJoueur($_POST['id'])) {
+        if (!$result['success']) {
             error_log("Erreur lors de la suppression du joueur");
         }
     }

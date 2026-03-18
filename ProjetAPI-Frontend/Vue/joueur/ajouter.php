@@ -1,8 +1,6 @@
 <h1>Ajouter un joueur</h1>
 <?php
 
-use R301\Controleur\JoueurControleur;
-use R301\Modele\Joueur\JoueurStatut;
 use R301\Vue\Component\Formulaire;
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST'
@@ -14,19 +12,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST'
     && isset($_POST['poidsEnKg'])
     && isset($_POST['statut'])
 ) {
-    $controleur = JoueurControleur::getInstance();
+    $result = callAPI('/api/joueurs', 'POST', [
+        'nom' => $_POST['nom'],
+        'prenom' => $_POST['prenom'],
+        'numero_licence' => $_POST['numeroDeLicence'],
+        'date_naissance' => $_POST['dateDeNaissance'],
+        'taille' => (int)$_POST['tailleEnCm'],
+        'poids' => (int)$_POST['poidsEnKg'],
+        'statut' => $_POST['statut']
+    ]);
 
-    if (
-        $controleur->ajouterJoueur(
-            $_POST['nom'],
-            $_POST['prenom'],
-            $_POST['numeroDeLicence'],
-            new DateTime($_POST['dateDeNaissance']),
-            $_POST['tailleEnCm'],
-            $_POST['poidsEnKg'],
-            $_POST['statut']
-        )
-    ) {
+    if ($result['success']) {
         header('Location: ' . BASE_PATH . '/joueur');
     } else {
         error_log("Erreur lors de la création du joueur");
@@ -39,7 +35,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST'
     $formulaire->setDate("Date de naissance", "dateDeNaissance");
     $formulaire->setText("Taille (en cm)", "tailleEnCm");
     $formulaire->setText("Poids (en kg)", "poidsEnKg");
-    $formulaire->setSelect("Statut", array_map(function($statut) { return $statut->name; } ,JoueurStatut::cases()), "statut");
+    $formulaire->setSelect("Statut", ['ACTIF', 'BLESSE', 'ABSENT', 'SUSPENDU'], "statut");
     $formulaire->addButton("Submit", "create", "valider", "Valider");
     echo $formulaire;
 }

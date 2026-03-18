@@ -1,12 +1,13 @@
 <?php
 
-use R301\Controleur\JoueurControleur;
-
-$controleur = JoueurControleur::getInstance();
 if (isset($_GET['recherche']) || isset($_GET['statut'])) {
-    $joueurs = $controleur->rechercherLesJoueurs($_GET['recherche'], $_GET['statut']);
+    $recherche = $_GET['recherche'] ?? '';
+    $statut = $_GET['statut'] ?? '';
+    $result = callAPI('/api/joueurs/recherche?q=' . urlencode($recherche) . '&statut=' . urlencode($statut));
+    $joueurs = $result['data'];
 } else {
-    $joueurs = $controleur->listerTousLesJoueurs();
+    $result = callAPI('/api/joueurs');
+    $joueurs = $result['data'];
 }
 
 ?>
@@ -51,17 +52,17 @@ if (isset($_GET['recherche']) || isset($_GET['statut'])) {
 
         <?php foreach ($joueurs as $joueur) { ?>
             <tr>
-                <td><?php echo $joueur->getNumeroDeLicence() ?></td>
-                <td><?php echo $joueur->getNom() ?></td>
-                <td><?php echo $joueur->getPrenom() ?></td>
-                <td><?php echo $joueur->getDateDeNaissance()->format('d/m/Y') ?></td>
-                <td><?php echo $joueur->getTailleEnCm() ?> cm</td>
-                <td><?php echo $joueur->getPoidsEnKg() ?> kg</td>
-                <td><?php echo $joueur->getStatut()->name ?></td>
+                <td><?php echo $joueur['numero_licence'] ?></td>
+                <td><?php echo $joueur['nom'] ?></td>
+                <td><?php echo $joueur['prenom'] ?></td>
+                <td><?php echo date('d/m/Y', strtotime($joueur['date_naissance'])) ?></td>
+                <td><?php echo $joueur['taille'] ?> cm</td>
+                <td><?php echo $joueur['poids'] ?> kg</td>
+                <td><?php echo $joueur['statut'] ?></td>
                 <td class="actions">
-                    <form action="<?= BASE_PATH ?>/joueur/modifier" method="get"><button class="update" type="submit" name="id" value="<?php echo $joueur->getJoueurId() ?>">Modifier</button></form>
-                    <form action="<?= BASE_PATH ?>/joueur/supprimer" method="post"><button class="delete" type="submit" name="id" value="<?php echo $joueur->getJoueurId() ?>"  onclick="return confirm('Voulez-vous vraiment supprimer ce joueur?')">Supprimer</button></form>
-                    <form action="<?= BASE_PATH ?>/joueur/commentaire" method="get"><button class="info" type="submit" name="id" value="<?php echo $joueur->getJoueurId() ?>">Commentaires</button></form>
+                    <form action="<?= BASE_PATH ?>/joueur/modifier" method="get"><button class="update" type="submit" name="id" value="<?php echo $joueur['joueur_id'] ?>">Modifier</button></form>
+                    <form action="<?= BASE_PATH ?>/joueur/supprimer" method="post"><button class="delete" type="submit" name="id" value="<?php echo $joueur['joueur_id'] ?>"  onclick="return confirm('Voulez-vous vraiment supprimer ce joueur?')">Supprimer</button></form>
+                    <form action="<?= BASE_PATH ?>/joueur/commentaire" method="get"><button class="info" type="submit" name="id" value="<?php echo $joueur['joueur_id'] ?>">Commentaires</button></form>
                 </td>
             </tr>
         <?php } ?>

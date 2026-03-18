@@ -2,8 +2,6 @@
 
 namespace R301\Vue\Component;
 
-use R301\Modele\Participation\Performance;
-
 class SelectPerformance extends Select {
 
     public function __construct(
@@ -11,8 +9,9 @@ class SelectPerformance extends Select {
             ?string $selectedValue = null
     ) {
         $values = [];
-        foreach (Performance::cases() as $performance) {
-            $values[$performance->name] = $performance->name;
+        $performances = ['EXCELLENTE', 'BONNE', 'MOYENNE', 'MAUVAISE', 'CATASTROPHIQUE'];
+        foreach ($performances as $performance) {
+            $values[$performance] = $performance;
         }
 
         parent::__construct($values, "performance", $description, $selectedValue);

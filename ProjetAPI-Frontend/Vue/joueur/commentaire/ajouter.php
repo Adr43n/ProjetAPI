@@ -1,16 +1,14 @@
 <?php
 
-use R301\Controleur\CommentaireControleur;
-
 if ($_SERVER['REQUEST_METHOD'] === 'POST'
     && isset($_POST['joueurId'])
     && isset($_POST['contenu'])
 ) {
-    $controleur = CommentaireControleur::getInstance();
-    if (!$controleur->ajouterCommentaire(
-        $_POST['contenu'],
-        $_POST['joueurId'])
-    ) {
+    $result = callAPI('/api/joueurs/' . $_POST['joueurId'] . '/commentaires', 'POST', [
+        'contenu' => $_POST['contenu']
+    ]);
+    
+    if (!$result['success']) {
         error_log("Erreur lors de la création du commentaire");
     }
 }

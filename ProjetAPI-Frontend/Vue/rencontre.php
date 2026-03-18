@@ -1,10 +1,8 @@
 
 <?php
 
-use R301\Controleur\RencontreControleur;
 use R301\Vue\Component\SelectResultat;
 
-$controleur = RencontreControleur::getInstance();
 if ($_SERVER['REQUEST_METHOD'] === 'POST'
         && isset($_POST['action'])
         && isset($_POST['rencontreId'])
@@ -21,14 +19,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST'
             die();
         case "enregistrerResultat":
             if (isset($_POST['resultat'])) {
-                if (!$controleur->enregistrerResultat($_POST['rencontreId'], $_POST['resultat'])) {
+                $result = callAPI('/api/rencontres/' . $_POST['rencontreId'] . '/resultat', 'PUT', ['resultat' => $_POST['resultat']]);
+                if (!$result['success']) {
                     error_log("Erreur lors de la mise à jour du resultat");
                 }
                 header('Location: ' . BASE_PATH . '/rencontre');
                 die();
             }
         case "supprimer":
-            if (!$controleur->supprimerRencontre($_POST['rencontreId'])) {
+            $result = callAPI('/api/rencontres/' . $_POST['rencontreId'], 'DELETE');
+            if (!$result['success']) {
                 error_log("Erreur lors de la suppression de la rencontre");
             }
             header('Location: ' . BASE_PATH . '/rencontre');
@@ -36,7 +36,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST'
     }
 } else {
 
-$rencontres = $controleur->listerToutesLesRencontres();
+$result = callAPI('/api/rencontres');
+$rencontres = $result['data'];
 
 
 ?>
@@ -52,32 +53,34 @@ $rencontres = $controleur->listerToutesLesRencontres();
             <th style="width:20%; min-width: 200px;">Actions</th>
         </tr>
         <?php foreach ($rencontres as $rencontre):
-
+            $estPassee = strtotime($rencontre['date_heure']) < time();
+            $aResultat = !empty($rencontre['resultat']);
+            
             $selectResultat = new SelectResultat(
                     null,
-                    $rencontre->getResultat()?->name
+                    $rencontre['resultat']
             );
         ?>
         <form action="<?= BASE_PATH ?>/rencontre" method="post">
             <tr>
-                <input type="hidden" name="rencontreId" value="<?php echo $rencontre->getRencontreId(); ?>" />
-                <td><?php echo $rencontre->getDateEtHeure()->format('d/m/Y H:i') ?></td>
-                <td><?php echo $rencontre->getEquipeAdverse() ?></td>
-                <td><?php echo $rencontre->getAdresse() ?></td>
-                <td><?php echo $rencontre->getLieu()->name ?></td>
-                <?php if ($rencontre->estPassee() && $rencontre->getResultat() ===null): ?>
+                <input type="hidden" name="rencontreId" value="<?php echo $rencontre['rencontre_id']; ?>" />
+                <td><?php echo date('d/m/Y H:i', strtotime($rencontre['date_heure'])) ?></td>
+                <td><?php echo $rencontre['equipe_adverse'] ?></td>
+                <td><?php echo $rencontre['adresse'] ?></td>
+                <td><?php echo $rencontre['lieu'] ?></td>
+                <?php if ($estPassee && !$aResultat): ?>
                     <td><?php $selectResultat->toHTML(); ?></td>
                 <?php else: ?>
-                    <td><?php echo $rencontre->getResultat()?->name ?></td>
+                    <td><?php echo $rencontre['resultat'] ?? '' ?></td>
                 <?php endif; ?>
                 <td class="actions">
-                    <?php if (!$rencontre->estPassee()): ?>
+                    <?php if (!$estPassee): ?>
                     <button name="action" value="ouvrirFeuilleDeMatch" class="info">Feuilles de match</button>
                     <button name="action" value="modifier" class="update">Modifier</button>
                     <button name="action" value="supprimer" class="delete">Supprimer</button>
                     <?php else: ?>
                     <button name="action" value="ouvrirEvaluations" class="info">Évaluations</button>
-                    <?php if ($rencontre->estPassee() && $rencontre->getResultat() ===null): ?>
+                    <?php if ($estPassee && !$aResultat): ?>
                     <button class="create" name="action" value="enregistrerResultat">Enregistrer résultat</button>
                     <?php endif; ?>
                     <?php endif; ?>

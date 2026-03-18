@@ -2,12 +2,7 @@
 <?php
 
 
-use R301\Controleur\ParticipationControleur;
-use R301\Modele\Participation\Poste;
-use R301\Modele\Participation\TitulaireOuRemplacant;
 use R301\Vue\Component\SelectPerformance;
-
-$controleur = ParticipationControleur::getInstance();
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST'
         && isset($_POST['action'])
@@ -17,12 +12,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST'
 ) :
     switch($_POST['action']) {
         case "update":
-            if (!$controleur->mettreAJourLaPerformance($_POST['participationId'], $_POST['performance'])) {
+            $result = callAPI('/api/participations/' . $_POST['participationId'] . '/performance', 'PUT', [
+                'performance' => $_POST['performance']
+            ]);
+            if (!$result['success']) {
                 error_log("Erreur lors de la mise à jour de la performance");
             }
             break;
         case "delete":
-            if (!$controleur->supprimerLaPerformance($_POST['participationId'])) {
+            $result = callAPI('/api/participations/' . $_POST['participationId'] . '/performance', 'PUT', [
+                'performance' => null
+            ]);
+            if (!$result['success']) {
                 error_log("Erreur lors de la suppression de la performance");
             }
             break;
@@ -34,11 +35,22 @@ else :
     if (!isset($_GET['id'])) :
         header("Location: " . BASE_PATH . "/rencontre"); die();
     else :
-        $feuilleDeMatch = $controleur->getFeuilleDeMatch($_GET['id']);
+        $resultFeuille = callAPI('/api/participations/rencontre/' . $_GET['id']);
+        $feuilleDeMatch = $resultFeuille['data'];
+        
+        // Helper function to find participant at a given position
+        function getParticipantAuPosteEval($participations, $poste, $titulaireOuRemplacant) {
+            foreach ($participations as $participant) {
+                if ($participant['poste'] === $poste && $participant['titulaire_ou_remplacant'] === $titulaireOuRemplacant) {
+                    return $participant;
+                }
+            }
+            return null;
+        }
 ?>
 <div style="display: flex; flex-direction: row; justify-content: space-between; align-items: center; padding-right: 30px">
     <h1>Évaluations</h1>
-    <?php if($feuilleDeMatch->estEvalue()) : ?>
+    <?php if($feuilleDeMatch['est_evaluee']) : ?>
         <div class="etat-feuille-de-match feuille-de-match-complete">
             TERMINÉES
         </div>
@@ -50,10 +62,13 @@ else :
 </div>
 
 <div class="container" style="display: flex; flex-direction: row; justify-content: space-between">
-    <?php foreach (TitulaireOuRemplacant::cases() as $titulaireOuRemplacant) : ?>
+    <?php 
+    $statutsTypes = ['TITULAIRE', 'REMPLACANT'];
+    foreach ($statutsTypes as $titulaireOuRemplacant) : 
+    ?>
         <table style="width: 49.5%">
             <caption>
-                <?php echo $titulaireOuRemplacant->name.'S' ?>
+                <?php echo $titulaireOuRemplacant.'S' ?>
             </caption>
             <tr>
                 <th style="width:15%">Poste</th>
@@ -64,12 +79,13 @@ else :
             </tr>
 
             <?php
-            foreach (Poste::cases() as $poste):
-                $participant = $feuilleDeMatch->getParticipantAuPoste($poste, $titulaireOuRemplacant);
+            $postes = ['TOPLANE', 'JUNGLE', 'MIDLANE', 'ADCARRY', 'SUPPORT'];
+            foreach ($postes as $poste):
+                $participant = getParticipantAuPosteEval($feuilleDeMatch['participations'], $poste, $titulaireOuRemplacant);
                 $selectedValue = null;
 
-                if ($participant?->getPerformance() !== null) {
-                    $selectedValue = $participant->getPerformance()->name;
+                if ($participant !== null && isset($participant['performance']) && $participant['performance'] !== null) {
+                    $selectedValue = $participant['performance'];
                 }
 
                 $select = new SelectPerformance(
@@ -79,11 +95,11 @@ else :
                 ?>
                 <form action="<?= BASE_PATH ?>/feuilleDeMatch/evaluation" method="post">
                     <tr>
-                        <input type="hidden" name="rencontreId" value="<?php if($participant !== null) echo $participant->getRencontre()->getRencontreId(); ?>" />
-                        <input type="hidden" name="participationId" value="<?php if($participant !== null) echo $participant->getParticipationId(); ?>" />
-                        <td><?php echo $poste->name; ?></td>
-                        <td><?php  if($participant !== null) echo $participant->getParticipant()->toString() ?></td>
-                        <td><?php  if($participant?->getPerformance() !== null) echo $participant->getPerformance()->name ?></td>
+                        <input type="hidden" name="rencontreId" value="<?php if($participant !== null) echo $feuilleDeMatch['rencontre_id']; ?>" />
+                        <input type="hidden" name="participationId" value="<?php if($participant !== null) echo $participant['participation_id']; ?>" />
+                        <td><?php echo $poste; ?></td>
+                        <td><?php  if($participant !== null) echo $participant['joueur_nom'] . ' ' . $participant['joueur_prenom'] ?></td>
+                        <td><?php  if($participant !== null && isset($participant['performance']) && $participant['performance'] !== null) echo $participant['performance'] ?></td>
                         <td><?php $select->toHTML(); ?></td>
                         <?php if($participant !== null) : ?>
                         <td class="actions">
