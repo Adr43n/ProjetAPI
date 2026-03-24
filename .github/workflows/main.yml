@@ -1,0 +1,28 @@
+name: Deploy to Alwaysdata
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+
+  deploy-liverpool:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Deploy to phpgestionequipe Alwaysdata
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
+        with:
+          server: ftp-phpgestionequipe.alwaysdata.net
+          username: ${{ secrets.PHPGESTIONEQUIPE_AD_USER }}
+          password: ${{ secrets.PHPGESTIONEQUIPE_AD_PASSWORD }}
+          protocol: ftps
+          port: 21
+          local-dir: ./
+          server-dir: /www/
+          security: loose
