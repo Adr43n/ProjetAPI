@@ -23,6 +23,6 @@ jobs:
           password: ${{ secrets.PHPGESTIONEQUIPE_AD_PASSWORD }}
           protocol: ftps
           port: 21
+          security: strict
           local-dir: ./
           server-dir: /www/
-          security: loose
