@@ -13,6 +13,16 @@ CREATE TABLE utilisateurs (
     date_creation TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
+DROP TABLE IF EXISTS tokens;
+
+CREATE TABLE tokens (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    utilisateur_id INT NOT NULL,
+    token VARCHAR(255) NOT NULL UNIQUE,
+    date_expiration DATETIME NOT NULL,
+    CONSTRAINT fk_token_utilisateur FOREIGN KEY (utilisateur_id) REFERENCES utilisateurs(id)
+);
+
 -- Insérer un utilisateur de test
 -- Email: admin@admin.com, Mot de passe: admin (haché avec password_hash)
 INSERT INTO utilisateurs (nom, email, mot_de_passe, role) 

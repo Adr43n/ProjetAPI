@@ -103,8 +103,10 @@ else :
                         <td><?php $select->toHTML(); ?></td>
                         <?php if($participant !== null) : ?>
                         <td class="actions">
+                                <?php if (isset($_SESSION['user']) && $_SESSION['user']['role'] === 'admin') : ?>
                                 <button class="update" type="submit" name="action" value="update">Mettre à jour</button>
                                 <button class="delete" type="submit" name="action" value="delete" style="margin-left: 8px">Supprimer</button>
+                                <?php endif; ?>
                         </td>
                         <?php else: ?>
                         <td></td>

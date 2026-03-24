@@ -26,7 +26,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST'
     if ($result['success']) {
         header('Location: ' . BASE_PATH . '/joueur');
     }else{
-        error_log("Erreur lors de la modification du joueur");
+        echo '<p style="color:red;">Erreur : ' . ($result['message'] ?: 'Accès refusé') . '</p>';
     }
 } else {
     if (!isset($_GET['id'])) {

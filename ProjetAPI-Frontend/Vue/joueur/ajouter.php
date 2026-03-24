@@ -25,7 +25,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST'
     if ($result['success']) {
         header('Location: ' . BASE_PATH . '/joueur');
     } else {
-        error_log("Erreur lors de la création du joueur");
+        echo '<p style="color:red;">Erreur : ' . ($result['message'] ?: 'Accès refusé') . '</p>';
     }
 } else {
     $formulaire = new Formulaire(BASE_PATH . "/joueur/ajouter");

@@ -18,9 +18,10 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     exit;
 }
 
-// Récupérer les données JSON
+// On récupère les données envoyées en JSON
 $input = json_decode(file_get_contents('php://input'), true);
 
+// On vérifie que l'email et le mot de passe sont bien envoyés
 if (!isset($input['email']) || !isset($input['password'])) {
     http_response_code(400);
     echo json_encode(['success' => false, 'message' => 'Email et password requis']);
@@ -33,20 +34,40 @@ $password = trim($input['password']);
 try {
     $pdo = DatabaseHandlerAuth::getInstance()->getPdo();
     
+    // On cherche l'utilisateur avec cet email
     $query = "SELECT * FROM utilisateurs WHERE email = :email";
     $stmt = $pdo->prepare($query);
     $stmt->execute(['email' => $email]);
     $user = $stmt->fetch(PDO::FETCH_ASSOC);
     
+    // Si l'utilisateur n'existe pas ou que le mot de passe est faux
     if (!$user || !password_verify($password, $user['mot_de_passe'])) {
         http_response_code(401);
         echo json_encode(['success' => false, 'message' => 'Identifiants invalides']);
         exit;
     }
     
-    // Authentification réussie
+    // On génère un token aléatoire
+    $token = bin2hex(random_bytes(32));
+    // Le token expire dans 2 heures
+    $expiration = date('Y-m-d H:i:s', strtotime('+2 hours'));
+    
+    // On supprime les anciens tokens de cet utilisateur
+    $deleteStmt = $pdo->prepare("DELETE FROM tokens WHERE utilisateur_id = :id");
+    $deleteStmt->execute(['id' => $user['id']]);
+    
+    // On enregistre le nouveau token dans la base de données
+    $insertStmt = $pdo->prepare("INSERT INTO tokens (utilisateur_id, token, date_expiration) VALUES (:id, :token, :expiration)");
+    $insertStmt->execute([
+        'id' => $user['id'],
+        'token' => $token,
+        'expiration' => $expiration
+    ]);
+    
+    // On retourne le token et les infos de l'utilisateur
     echo json_encode([
         'success' => true,
+        'token' => $token,
         'user' => [
             'id' => $user['id'],
             'email' => $user['email'],

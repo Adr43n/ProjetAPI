@@ -3,6 +3,13 @@
 $resultEquipe = callAPI('/api/statistiques/equipe');
 $resultJoueurs = callAPI('/api/statistiques/joueurs');
 
+// Si l'API échoue (ex: token expiré), rediriger vers le login
+if (!$resultEquipe['success'] || !$resultJoueurs['success']) {
+    session_destroy();
+    header('Location: ' . BASE_PATH . '/login');
+    exit;
+}
+
 $statistiquesEquipe = $resultEquipe['data'];
 $statistiquesJoueurs = $resultJoueurs['data'];
 

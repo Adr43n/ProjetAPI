@@ -13,35 +13,43 @@ define('BASE_PATH', '/ProjetAPI/ProjetAPI-Frontend');
 define('API_BASE_URL', 'http://localhost/ProjetAPI/ProjetAPI-Backend');
 define('AUTH_API_URL', 'http://localhost/ProjetAPI/AuthAPI');
 
-// Fonction helper pour appeler l'API Backend
+// Fonction pour appeler l'API Backend
+// On envoie le token dans le header pour s'authentifier
 function callAPI($endpoint, $method = 'GET', $data = null) {
     $url = API_BASE_URL . $endpoint;
     $ch = curl_init($url);
     curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
     curl_setopt($ch, CURLOPT_CUSTOMREQUEST, $method);
     
+    // On prépare les headers avec le token
+    $headers = ['Content-Type: application/json'];
+    if (isset($_SESSION['token'])) {
+        $headers[] = 'Authorization: Bearer ' . $_SESSION['token'];
+    }
+    
+    // Si on envoie des données (POST, PUT), on les met dans le body
     if ($data !== null) {
         $jsonData = json_encode($data);
         curl_setopt($ch, CURLOPT_POSTFIELDS, $jsonData);
-        curl_setopt($ch, CURLOPT_HTTPHEADER, [
-            'Content-Type: application/json',
-            'Content-Length: ' . strlen($jsonData)
-        ]);
     }
+    
+    curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
     
     $response = curl_exec($ch);
     $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
     curl_close($ch);
     
     $result = json_decode($response, true);
+    
+    // On retourne un tableau avec le résultat
     return [
-        'success' => $httpCode === 200 && ($result['success'] ?? false),
-        'data' => $result['data'] ?? [],
-        'message' => $result['message'] ?? ''
+        'success' => $httpCode === 200 && isset($result['success']) && $result['success'] == true,
+        'data' => isset($result['data']) ? $result['data'] : [],
+        'message' => isset($result['message']) ? $result['message'] : ''
     ];
 }
 
-// Fonction helper pour l'AuthAPI
+// Fonction pour appeler l'API d'authentification (login)
 function callAuthAPI($endpoint, $data) {
     $url = AUTH_API_URL . $endpoint;
     $ch = curl_init($url);
@@ -55,10 +63,12 @@ function callAuthAPI($endpoint, $data) {
     curl_close($ch);
     
     $result = json_decode($response, true);
+    
     return [
-        'success' => $httpCode === 200 && ($result['success'] ?? false),
+        'success' => $httpCode === 200 && isset($result['success']) && $result['success'] == true,
         'data' => $result,
-        'user' => $result['user'] ?? null
+        'token' => isset($result['token']) ? $result['token'] : null,
+        'user' => isset($result['user']) ? $result['user'] : null
     ];
 }
 
@@ -110,14 +120,18 @@ if (strtok($route, '?') === "/login" && isset($_SESSION ['username'])) {
             <div class="dropdown">
                 <button class="dropbtn">Joueurs</button>
                 <div class="dropdown-content">
+                    <?php if (isset($_SESSION['user']) && $_SESSION['user']['role'] === 'admin') : ?>
                     <a href="<?= BASE_PATH ?>/joueur/ajouter">Ajouter un joueur</a>
+                    <?php endif; ?>
                     <a href="<?= BASE_PATH ?>/joueur">Liste de joueurs</a>
                 </div>
             </div>
             <div class="dropdown">
                 <button class="dropbtn">Rencontres</button>
                 <div class="dropdown-content">
+                    <?php if (isset($_SESSION['user']) && $_SESSION['user']['role'] === 'admin') : ?>
                     <a href="<?= BASE_PATH ?>/rencontre/ajouter">Ajouter une rencontre</a>
+                    <?php endif; ?>
                     <a href="<?= BASE_PATH ?>/rencontre">Liste des rencontres</a>
                 </div>
             </div>

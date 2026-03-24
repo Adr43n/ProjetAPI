@@ -60,8 +60,10 @@ if (isset($_GET['recherche']) || isset($_GET['statut'])) {
                 <td><?php echo $joueur['poids'] ?> kg</td>
                 <td><?php echo $joueur['statut'] ?></td>
                 <td class="actions">
+                    <?php if (isset($_SESSION['user']) && $_SESSION['user']['role'] === 'admin') : ?>
                     <form action="<?= BASE_PATH ?>/joueur/modifier" method="get"><button class="update" type="submit" name="id" value="<?php echo $joueur['joueur_id'] ?>">Modifier</button></form>
                     <form action="<?= BASE_PATH ?>/joueur/supprimer" method="post"><button class="delete" type="submit" name="id" value="<?php echo $joueur['joueur_id'] ?>"  onclick="return confirm('Voulez-vous vraiment supprimer ce joueur?')">Supprimer</button></form>
+                    <?php endif; ?>
                     <form action="<?= BASE_PATH ?>/joueur/commentaire" method="get"><button class="info" type="submit" name="id" value="<?php echo $joueur['joueur_id'] ?>">Commentaires</button></form>
                 </td>
             </tr>

@@ -68,7 +68,7 @@ $rencontres = $result['data'];
                 <td><?php echo $rencontre['equipe_adverse'] ?></td>
                 <td><?php echo $rencontre['adresse'] ?></td>
                 <td><?php echo $rencontre['lieu'] ?></td>
-                <?php if ($estPassee && !$aResultat): ?>
+                <?php if ($estPassee && !$aResultat && isset($_SESSION['user']) && $_SESSION['user']['role'] === 'admin'): ?>
                     <td><?php $selectResultat->toHTML(); ?></td>
                 <?php else: ?>
                     <td><?php echo $rencontre['resultat'] ?? '' ?></td>
@@ -76,11 +76,13 @@ $rencontres = $result['data'];
                 <td class="actions">
                     <?php if (!$estPassee): ?>
                     <button name="action" value="ouvrirFeuilleDeMatch" class="info">Feuilles de match</button>
+                    <?php if (isset($_SESSION['user']) && $_SESSION['user']['role'] === 'admin') : ?>
                     <button name="action" value="modifier" class="update">Modifier</button>
                     <button name="action" value="supprimer" class="delete">Supprimer</button>
+                    <?php endif; ?>
                     <?php else: ?>
                     <button name="action" value="ouvrirEvaluations" class="info">Évaluations</button>
-                    <?php if ($estPassee && !$aResultat): ?>
+                    <?php if ($estPassee && !$aResultat && isset($_SESSION['user']) && $_SESSION['user']['role'] === 'admin'): ?>
                     <button class="create" name="action" value="enregistrerResultat">Enregistrer résultat</button>
                     <?php endif; ?>
                     <?php endif; ?>

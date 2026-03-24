@@ -22,7 +22,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST'
     if ($result['success']) {
         header('Location: ' . BASE_PATH . '/rencontre');
     }else{
-        error_log("Erreur lors de la modification de la rencontre");
+        echo '<p style="color:red;">Erreur : ' . ($result['message'] ?: 'Accès refusé') . '</p>';
     }
 } else {
     if (!isset($_GET['id'])) {

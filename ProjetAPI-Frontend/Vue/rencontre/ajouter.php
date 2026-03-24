@@ -20,7 +20,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST'
     if ($result['success']) {
         header('Location: ' . BASE_PATH . '/rencontre');
     }else{
-        error_log("Erreur lors de la création de la rencontre");
+        echo '<p style="color:red;">Erreur : ' . ($result['message'] ?: 'Accès refusé') . '</p>';
     }
 } else {
     $formulaire = new Formulaire(BASE_PATH . "/rencontre/ajouter");

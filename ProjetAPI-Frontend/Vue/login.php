@@ -10,6 +10,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST["email"]) && isset($_PO
     if ($result['success']) {
         $_SESSION['username'] = $result['user']['email'];
         $_SESSION['user'] = $result['user'];
+        $_SESSION['token'] = $result['token'];
         header("Location: " . BASE_PATH . "/joueur");
         die();
     } else {

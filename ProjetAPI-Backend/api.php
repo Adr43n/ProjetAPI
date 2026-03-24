@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__ . '/Psr4AutoloaderClass.php';
+require_once __DIR__ . '/../jwt_utils.php';
 
 $loader = new R301\Psr4AutoloaderClass();
 $loader->register();
@@ -24,11 +25,58 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     exit(0);
 }
 
+// URL de l'API d'authentification
+define('AUTH_API_URL', 'http://localhost/ProjetAPI/AuthAPI');
+
+// Vérifier le token en appelant l'AuthAPI
+// On utilise get_bearer_token() de jwt_utils.php pour récupérer le token
+function verifierToken() {
+    $token = get_bearer_token();
+    if ($token === null) {
+        return null;
+    }
+
+    // On appelle l'AuthAPI pour vérifier si le token est valide
+    $ch = curl_init(AUTH_API_URL . '/verify.php');
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    curl_setopt($ch, CURLOPT_POST, true);
+    curl_setopt($ch, CURLOPT_HTTPHEADER, ['Content-Type: application/json']);
+    curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode(['token' => $token]));
+
+    $response = curl_exec($ch);
+    $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    curl_close($ch);
+
+    $result = json_decode($response, true);
+
+    // Si le token est valide, on retourne les infos de l'utilisateur
+    if ($httpCode === 200 && $result['success'] == true) {
+        return $result['user'];
+    }
+
+    return null;
+}
+
+// On vérifie que l'utilisateur est connecté
+$utilisateurConnecte = verifierToken();
+if ($utilisateurConnecte === null) {
+    http_response_code(401);
+    echo json_encode(['success' => false, 'message' => 'Token manquant ou invalide']);
+    exit;
+}
+
 $uri = $_SERVER['REQUEST_URI'];
 $method = $_SERVER['REQUEST_METHOD'];
 
-// Fonction utilitaire pour convertir un joueur en tableau
-function joueurToArray($joueur): array {
+// Si c'est un simple utilisateur, il a le droit qu'en lecture (GET)
+if ($utilisateurConnecte['role'] === 'user' && $method !== 'GET') {
+    http_response_code(403);
+    echo json_encode(['success' => false, 'message' => 'Accès refusé : droits insuffisants']);
+    exit;
+}
+
+// Convertir un joueur en tableau
+function joueurToArray($joueur) {
     return [
         'joueur_id' => $joueur->getJoueurId(),
         'nom' => $joueur->getNom(),
@@ -41,20 +89,20 @@ function joueurToArray($joueur): array {
     ];
 }
 
-// Fonction utilitaire pour convertir une rencontre en tableau
-function rencontreToArray($rencontre): array {
+// Convertir une rencontre en tableau
+function rencontreToArray($rencontre) {
     return [
         'rencontre_id' => $rencontre->getRencontreId(),
         'date_heure' => $rencontre->getDateEtHeure()->format('Y-m-d H:i:s'),
         'equipe_adverse' => $rencontre->getEquipeAdverse(),
         'adresse' => $rencontre->getAdresse(),
-        'lieu' => $rencontre->getLieu() ? $rencontre->getLieu()->name : null,
-        'resultat' => $rencontre->getResultat() ? $rencontre->getResultat()->name : null
+        'lieu' => $rencontre->getLieu() != null ? $rencontre->getLieu()->name : null,
+        'resultat' => $rencontre->getResultat() != null ? $rencontre->getResultat()->name : null
     ];
 }
 
-// Fonction utilitaire pour convertir une participation en tableau
-function participationToArray($participation): array {
+// Convertir une participation en tableau
+function participationToArray($participation) {
     return [
         'participation_id' => $participation->getParticipationId(),
         'joueur_id' => $participation->getParticipant()->getJoueurId(),
@@ -63,12 +111,12 @@ function participationToArray($participation): array {
         'rencontre_id' => $participation->getRencontre()->getRencontreId(),
         'poste' => $participation->getPoste()->name,
         'titulaire_ou_remplacant' => $participation->getTitulaireOuRemplacant()->name,
-        'performance' => $participation->getPerformance() ? $participation->getPerformance()->name : null
+        'performance' => $participation->getPerformance() != null ? $participation->getPerformance()->name : null
     ];
 }
 
-// Fonction utilitaire pour convertir un commentaire en tableau
-function commentaireToArray($commentaire): array {
+// Convertir un commentaire en tableau
+function commentaireToArray($commentaire) {
     return [
         'commentaire_id' => $commentaire->getCommentaireId(),
         'contenu' => $commentaire->getContenu(),
@@ -434,7 +482,7 @@ try {
                 'nom' => $joueur->getNom(),
                 'prenom' => $joueur->getPrenom(),
                 'statut' => $joueur->getStatut()->name,
-                'poste_le_plus_performant' => $postePerformant?->name,
+                'poste_le_plus_performant' => $postePerformant != null ? $postePerformant->name : null,
                 'nb_rencontres_consecutives' => $stats->nbRencontresConsecutivesADate($joueur),
                 'nb_titularisations' => $stats->nbTitularisations($joueur),
                 'nb_remplacant' => $stats->nbRemplacant($joueur),
