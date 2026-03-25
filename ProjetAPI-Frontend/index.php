@@ -120,18 +120,14 @@ if (strtok($route, '?') === "/login" && isset($_SESSION ['username'])) {
             <div class="dropdown">
                 <button class="dropbtn">Joueurs</button>
                 <div class="dropdown-content">
-                    <?php if (isset($_SESSION['user']) && $_SESSION['user']['role'] === 'admin') : ?>
                     <a href="<?= BASE_PATH ?>/joueur/ajouter">Ajouter un joueur</a>
-                    <?php endif; ?>
                     <a href="<?= BASE_PATH ?>/joueur">Liste de joueurs</a>
                 </div>
             </div>
             <div class="dropdown">
                 <button class="dropbtn">Rencontres</button>
                 <div class="dropdown-content">
-                    <?php if (isset($_SESSION['user']) && $_SESSION['user']['role'] === 'admin') : ?>
                     <a href="<?= BASE_PATH ?>/rencontre/ajouter">Ajouter une rencontre</a>
-                    <?php endif; ?>
                     <a href="<?= BASE_PATH ?>/rencontre">Liste des rencontres</a>
                 </div>
             </div>

@@ -41,9 +41,7 @@ usort($commentaires, function ($a, $b) { return strtotime($b['date']) <=> strtot
                 <td><?php echo date('d/m/Y H:i', strtotime($commentaire['date'])); ?></td>
                 <td><?php echo $commentaire['contenu']; ?></td>
                 <td class="actions">
-                    <?php if (isset($_SESSION['user']) && $_SESSION['user']['role'] === 'admin') : ?>
                     <button class="delete" type="submit">Supprimer</button>
-                    <?php endif; ?>
                 </td>
             </tr>
         </form>

@@ -83,13 +83,11 @@ else :
                 <td><?php  if($participant !== null) echo $participant['joueur_nom'] . ' ' . $participant['joueur_prenom'] ?></td>
                 <td><?php $select->toHTML(); ?></td>
                 <td class="actions">
-                    <?php if(isset($_SESSION['user']) && $_SESSION['user']['role'] === 'admin') : ?>
                     <?php if($participant !== null) : ?>
                     <button class="update" type="submit" name="action" value="update">Modifier</button>
                     <button class="delete" type="submit" name="action" value="delete" style="margin-left: 8px">Supprimer</button>
                     <?php else: ?>
                     <button class="create" type="submit" name="action" value="create">Assigner</button>
-                    <?php endif; ?>
                     <?php endif; ?>
                 </td>
             </tr>
