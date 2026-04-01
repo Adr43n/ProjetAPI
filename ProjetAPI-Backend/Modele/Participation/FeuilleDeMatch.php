@@ -7,7 +7,7 @@ use R301\Modele\Joueur\JoueurStatut;
 use R301\Modele\Rencontre\Rencontre;
 
 class FeuilleDeMatch {
-    private readonly array $participants;
+    private array $participants;
 
     public function __construct(array $participants) {
         $this->participants = $participants;

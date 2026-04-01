@@ -8,7 +8,7 @@ use R301\Modele\Rencontre\Rencontre;
 class Participation {
     private int $participationId;
     private Joueur $participant;
-    private readonly Rencontre $rencontre;
+    private Rencontre $rencontre;
     private TitulaireOuRemplacant $titulaireOuRemplacant;
     private ?Performance $performance;
     private Poste $poste;

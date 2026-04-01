@@ -1,47 +1,74 @@
 <?php
+/**
+ * Frontend - ProjetAPI
+ *
+ * Point d'entrée du frontend.
+ * Gère la session utilisateur et le routage des vues.
+ * Communique avec l'API Backend via HTTP + JWT.
+ */
+
 require_once __DIR__ . '/Psr4AutoloaderClass.php';
 use R301\Psr4AutoloaderClass;
 
 $loader = new Psr4AutoloaderClass;
-// register the autoloader
 $loader->register();
-// register the base directories for the namespace prefix
 $loader->addNamespace('R301', __DIR__);
 
-// Base path du projet (sous-dossier)
+// === CONFIGURATION ===
+// Base path du projet (chemin racine pour les liens)
 define('BASE_PATH', '/ProjetAPI/ProjetAPI-Frontend');
+// URLs d'accès aux APIs
 define('API_BASE_URL', 'http://localhost/ProjetAPI/ProjetAPI-Backend');
 define('AUTH_API_URL', 'http://localhost/ProjetAPI/AuthAPI');
 
-// Fonction pour appeler l'API Backend
-// On envoie le token dans le header pour s'authentifier
+/**
+ * Fonction générique pour appeler l'API Backend
+ *
+ * Enveloppe curl pour faire les requêtes HTTP.
+ * Gère automatiquement :
+ *  - Headers Content-Type: application/json
+ *  - Authentification : ajoute le JWT dans Authorization header (Bearer token)
+ *  - Encode/décode automatiquement le JSON
+ *  - Normalise la réponse en {success, data, message}
+ *
+ * @param string $endpoint - URL relative, ex: "/api/joueurs" ou "/api/joueurs/5"
+ * @param string $method - GET, POST, PUT, DELETE
+ * @param array $data - Données à envoyer (pour POST/PUT)
+ * @return array {success: bool, data: array, message: string}
+ */
 function callAPI($endpoint, $method = 'GET', $data = null) {
     $url = API_BASE_URL . $endpoint;
     $ch = curl_init($url);
     curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
     curl_setopt($ch, CURLOPT_CUSTOMREQUEST, $method);
-    
-    // On prépare les headers avec le token
+
+    // === PRÉPARATION DES HEADERS ===
     $headers = ['Content-Type: application/json'];
+
+    // Si un token est stocké en session, on l'envoie
+    // (reçu lors du login, stocké dans $_SESSION['token'])
     if (isset($_SESSION['token'])) {
         $headers[] = 'Authorization: Bearer ' . $_SESSION['token'];
     }
-    
-    // Si on envoie des données (POST, PUT), on les met dans le body
+
+    // === ENCODING DES DONNÉES ===
+    // Si on envoie des données (POST, PUT), on les met dans le body JSON
     if ($data !== null) {
         $jsonData = json_encode($data);
         curl_setopt($ch, CURLOPT_POSTFIELDS, $jsonData);
     }
-    
+
     curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
-    
+
+    // === EXÉCUTION + DÉCODE ===
     $response = curl_exec($ch);
     $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
     curl_close($ch);
-    
+
     $result = json_decode($response, true);
-    
-    // On retourne un tableau avec le résultat
+
+    // === NORMALISATION DE LA RÉPONSE ===
+    // Les vues attendent toujours le même format, peu importe la réponse
     return [
         'success' => $httpCode === 200 && isset($result['success']) && $result['success'] == true,
         'data' => isset($result['data']) ? $result['data'] : [],
@@ -94,12 +121,14 @@ if (preg_match('/\.(?:png|jpg|jpeg|gif|ico|css|js)\??.*$/', $requestUri)) {
 } else {
 
 session_start();
-if (strtok($route, '?') !== "/login" && !isset($_SESSION ['username'])) {
+// /rencontre est accessible sans connexion (liste publique des matchs)
+$routeSansQuery = strtok($route, '?');
+if ($routeSansQuery !== "/login" && $routeSansQuery !== "/rencontre" && !isset($_SESSION['username'])) {
     header('Location: ' . BASE_PATH . '/login');
     exit;
 }
 // Si connecté et sur la page login, rediriger vers tableau de bord
-if (strtok($route, '?') === "/login" && isset($_SESSION ['username'])) {
+if ($routeSansQuery === "/login" && isset($_SESSION['username'])) {
     header('Location: ' . BASE_PATH . '/tableauDeBord');
     exit;
 }
@@ -114,8 +143,9 @@ if (strtok($route, '?') === "/login" && isset($_SESSION ['username'])) {
         <link rel="icon" type="image/jpg" href="<?= BASE_PATH ?>/favicon.jpg">
     </head>
     <body>
-    <?php if (strtok($route, '?') !== '/login') : ?>
+    <?php if ($routeSansQuery !== '/login') : ?>
         <nav class="navbar">
+            <?php if (isset($_SESSION['username'])): ?>
             <a href="<?= BASE_PATH ?>/tableauDeBord" class="dropbtn">Tableau de bord</a>
             <div class="dropdown">
                 <button class="dropbtn">Joueurs</button>
@@ -131,6 +161,10 @@ if (strtok($route, '?') === "/login" && isset($_SESSION ['username'])) {
                     <a href="<?= BASE_PATH ?>/rencontre">Liste des rencontres</a>
                 </div>
             </div>
+            <?php else: ?>
+            <a href="<?= BASE_PATH ?>/rencontre" class="dropbtn">Rencontres</a>
+            <a href="<?= BASE_PATH ?>/login" class="dropbtn">Se connecter</a>
+            <?php endif; ?>
         </nav>
     <?php endif; ?>
     <?php

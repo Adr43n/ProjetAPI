@@ -11,7 +11,7 @@ use R301\Modele\Joueur\JoueurStatut;
 
 class CommentaireControleur {
     private static ?CommentaireControleur $instance = null;
-    private readonly CommentaireDAO $commentaires;
+    private CommentaireDAO $commentaires;
 
     private function __construct() {
         $this->commentaires = CommentaireDAO::getInstance();

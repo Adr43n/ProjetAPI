@@ -14,7 +14,7 @@ use R301\Modele\Utilisateur\UtilisateurDAO;
 
 class UtilisateurControleur {
     private static ?UtilisateurControleur $instance = null;
-    private readonly UtilisateurDAO $utilisateurs;
+    private UtilisateurDAO $utilisateurs;
 
     private function __construct() {
         $this->utilisateurs = UtilisateurDAO::getInstance();

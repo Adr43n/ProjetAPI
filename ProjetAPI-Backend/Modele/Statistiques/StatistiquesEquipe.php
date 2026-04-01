@@ -5,7 +5,7 @@ namespace R301\Modele\Statistiques;
 use R301\Modele\Rencontre\RencontreResultat;
 
 class StatistiquesEquipe {
-    private readonly array $rencontres;
+    private array $rencontres;
 
     public function __construct(
         array $rencontres

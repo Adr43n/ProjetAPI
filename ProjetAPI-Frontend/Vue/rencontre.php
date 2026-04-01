@@ -74,15 +74,17 @@ $rencontres = $result['data'];
                     <td><?php echo $rencontre['resultat'] ?? '' ?></td>
                 <?php endif; ?>
                 <td class="actions">
-                    <?php if (!$estPassee): ?>
-                    <button name="action" value="ouvrirFeuilleDeMatch" class="info">Feuilles de match</button>
-                    <button name="action" value="modifier" class="update">Modifier</button>
-                    <button name="action" value="supprimer" class="delete">Supprimer</button>
-                    <?php else: ?>
-                    <button name="action" value="ouvrirEvaluations" class="info">Évaluations</button>
-                    <?php if ($estPassee && !$aResultat): ?>
-                    <button class="create" name="action" value="enregistrerResultat">Enregistrer résultat</button>
-                    <?php endif; ?>
+                    <?php if (isset($_SESSION['username'])): ?>
+                        <?php if (!$estPassee): ?>
+                        <button name="action" value="ouvrirFeuilleDeMatch" class="info">Feuilles de match</button>
+                        <button name="action" value="modifier" class="update">Modifier</button>
+                        <button name="action" value="supprimer" class="delete">Supprimer</button>
+                        <?php else: ?>
+                        <button name="action" value="ouvrirEvaluations" class="info">Évaluations</button>
+                        <?php if ($estPassee && !$aResultat): ?>
+                        <button class="create" name="action" value="enregistrerResultat">Enregistrer résultat</button>
+                        <?php endif; ?>
+                        <?php endif; ?>
                     <?php endif; ?>
                 </td>
             </tr>

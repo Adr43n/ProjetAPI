@@ -10,22 +10,8 @@ CREATE TABLE utilisateurs (
     email VARCHAR(100) NOT NULL UNIQUE,
     mot_de_passe VARCHAR(255) NOT NULL,
     role ENUM('user', 'admin') DEFAULT 'user',
+    joueur_id INT NULL,
     date_creation TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
-
-DROP TABLE IF EXISTS tokens;
-
-CREATE TABLE tokens (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    utilisateur_id INT NOT NULL,
-    token VARCHAR(255) NOT NULL UNIQUE,
-    date_expiration DATETIME NOT NULL,
-    CONSTRAINT fk_token_utilisateur FOREIGN KEY (utilisateur_id) REFERENCES utilisateurs(id)
-);
-
--- Insérer un utilisateur de test
--- Email: admin@admin.com, Mot de passe: admin (haché avec password_hash)
-INSERT INTO utilisateurs (nom, email, mot_de_passe, role) 
-VALUES ('Admin', 'admin@admin.com', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'admin');
 
 COMMIT;

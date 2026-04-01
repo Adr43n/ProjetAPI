@@ -6,7 +6,7 @@ use Exception;
 
 class DatabaseHandlerAuth {
     private static ?DatabaseHandlerAuth $instance = null;
-    private readonly PDO $pdo;
+    private PDO $pdo;
 
     private function __construct() {
         try {

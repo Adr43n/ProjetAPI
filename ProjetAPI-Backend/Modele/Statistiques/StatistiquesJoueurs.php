@@ -6,8 +6,8 @@ use R301\Modele\Joueur\Joueur;
 use R301\Modele\Participation\Poste;
 
 class StatistiquesJoueurs {
-    private readonly array $participations;
-    private readonly array $rencontresJouees;
+    private array $participations;
+    private array $rencontresJouees;
 
     public function __construct(
         array $participations,

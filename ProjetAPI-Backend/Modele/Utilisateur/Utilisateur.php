@@ -6,8 +6,8 @@ use Cassandra\Date;
 use R301\Modele\Joueur\JoueurStatut;
 
 class Utilisateur {
-    private readonly string $login;
-    private readonly string $motDePasse;
+    private string $login;
+    private string $motDePasse;
 
     public function __construct(
         string $login,

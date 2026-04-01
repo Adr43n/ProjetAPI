@@ -1,7 +1,14 @@
 <?php
-require_once __DIR__ . '/DatabaseHandlerAuth.php';
+/**
+ * Endpoint de vérification JWT
+ * Valide un token sans accès à la DB (stateless)
+ *
+ * POST /AuthAPI/verify.php
+ * { "token": "eyJhb..." }
+ */
 
-use R301\AuthAPI9\Modele\DatabaseHandlerAuth;
+require_once __DIR__ . '/jwt_secret.php';
+require_once __DIR__ . '/../jwt_utils.php';
 
 header('Content-Type: application/json');
 header('Access-Control-Allow-Origin: *');
@@ -18,7 +25,7 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     exit;
 }
 
-// On récupère le token envoyé en JSON
+// Récupère le token depuis le corps JSON
 $input = json_decode(file_get_contents('php://input'), true);
 
 if (!isset($input['token'])) {
@@ -29,37 +36,36 @@ if (!isset($input['token'])) {
 
 $token = trim($input['token']);
 
-try {
-    $pdo = DatabaseHandlerAuth::getInstance()->getPdo();
+// === VALIDATION DU JWT ===
+// La vérification JWT ne demande PAS d'accès à la BDD parce que :
+// - La signature est stockée DANS le token lui-même
+// - On vérifie la signature avec JWT_SECRET (clé symétrique HS256)
+// - Si la signature est valide = le token n'a pas été modifié
+// - On vérifie l'expiration (champ 'exp' du payload)
+// C'est ce qui rend les JWT "stateless" (no DB query needed)
 
-    // On vérifie que le token existe et qu'il n'est pas expiré
-    $query = "SELECT t.*, u.nom, u.email, u.role 
-              FROM tokens t 
-              JOIN utilisateurs u ON t.utilisateur_id = u.id 
-              WHERE t.token = :token AND t.date_expiration > NOW()";
-    $stmt = $pdo->prepare($query);
-    $stmt->execute(['token' => $token]);
-    $result = $stmt->fetch(PDO::FETCH_ASSOC);
-
-    // Si le token n'existe pas ou est expiré
-    if (!$result) {
-        http_response_code(401);
-        echo json_encode(['success' => false, 'message' => 'Token invalide ou expiré']);
-        exit;
-    }
-
-    // Le token est valide, on retourne les infos de l'utilisateur
-    echo json_encode([
-        'success' => true,
-        'user' => [
-            'id' => $result['utilisateur_id'],
-            'email' => $result['email'],
-            'nom' => $result['nom'],
-            'role' => $result['role']
-        ]
-    ]);
-
-} catch (Exception $e) {
-    http_response_code(500);
-    echo json_encode(['success' => false, 'message' => 'Erreur serveur: ' . $e->getMessage()]);
+if (!is_jwt_valid($token, JWT_SECRET)) {
+    http_response_code(401);
+    echo json_encode(['success' => false, 'message' => 'Token invalide ou expiré']);
+    exit;
 }
+
+// Token OK : on extrait les infos utilisateur du payload
+// Attention : le JWT se divise en 3 parties séparées par '.'
+// [0] = header (base64url)
+// [1] = payload (base64url) ← on la décode
+// [2] = signature (base64url)
+$tokenParts = explode('.', $token);
+$payload = json_decode(base64_decode($tokenParts[1]), true);
+
+// Retour au client avec les données du payload
+echo json_encode([
+    'success' => true,
+    'user' => [
+        'id'        => $payload['id'],
+        'email'     => $payload['email'],
+        'nom'       => $payload['nom'],
+        'role'      => $payload['role'],
+        'joueur_id' => $payload['joueur_id'] ?? null
+    ]
+]);

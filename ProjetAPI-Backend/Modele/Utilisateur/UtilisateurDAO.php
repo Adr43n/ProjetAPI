@@ -6,7 +6,7 @@ use R301\Modele\DatabaseHandler;
 
 class UtilisateurDAO {
     private static ?UtilisateurDAO $instance = null;
-    private readonly DatabaseHandler $database;
+    private DatabaseHandler $database;
 
     public function __construct() {
         $this->database = DatabaseHandler::getInstance();

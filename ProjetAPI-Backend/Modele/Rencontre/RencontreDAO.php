@@ -8,7 +8,7 @@ use R301\Modele\DatabaseHandler;
 
 class RencontreDAO {
     private static ?RencontreDAO $instance = null;
-    private readonly DatabaseHandler $database;
+    private DatabaseHandler $database;
 
     private function __construct() {
         $this->database = DatabaseHandler::getInstance();
@@ -104,6 +104,7 @@ class RencontreDAO {
         $query = 'DELETE FROM rencontre WHERE rencontre_id = :rencontreId';
         $statement=$this->database->pdo()->prepare($query);
         $statement->bindValue(':rencontreId', $rencontreId);
-        return $statement->execute();
+        $statement->execute();
+        return $statement->rowCount() > 0;
     }
 }

@@ -1,4 +1,16 @@
 <?php
+/**
+ * API REST - ProjetAPI Backend
+ *
+ * Point d'entrée unique pour toutes les requêtes API.
+ * Gère :
+ *  - Routage par URL (avec regex preg_match)
+ *  - Authentification JWT (via AuthAPI)
+ *  - Autorisation par rôle (user / admin)
+ *  - Validation des champs entrée
+ *  - Sérialisation des réponses JSON
+ */
+
 require_once __DIR__ . '/Psr4AutoloaderClass.php';
 require_once __DIR__ . '/../jwt_utils.php';
 
@@ -16,27 +28,39 @@ use R301\Modele\Rencontre\RencontreResultat;
 use R301\Modele\Participation\Poste;
 use R301\Modele\Participation\TitulaireOuRemplacant;
 
+// === HEADERS CORS ===
+// Accepte les requêtes depuis n'importe où (*)
+// En prod, il faudrait restreindre à https://mon-domain.com
 header('Content-Type: application/json');
 header('Access-Control-Allow-Origin: *');
 header('Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS');
 header('Access-Control-Allow-Headers: Content-Type, Authorization');
 
+// Les navigateurs font un preflight OPTIONS avant chaque requête cross-origin
+// On répond juste 200 OK et c'est bon
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     exit(0);
 }
 
-// URL de l'API d'authentification
 define('AUTH_API_URL', 'http://localhost/ProjetAPI/AuthAPI');
 
-// Vérifier le token en appelant l'AuthAPI
-// On utilise get_bearer_token() de jwt_utils.php pour récupérer le token
+/**
+ * Vérifie l'authentification JWT
+ * Extrait le token du header Authorization: Bearer {token}
+ * Appelle l'AuthAPI pour valider la signature + expiration
+ *
+ * Retourne : tableau utilisateur {id, email, nom, role, joueur_id}
+ *  ou NULL si token invalide/absent
+ */
 function verifierToken() {
+    // Récupère le token du header: "Authorization: Bearer eyJhb..."
     $token = get_bearer_token();
     if ($token === null) {
         return null;
     }
 
-    // On appelle l'AuthAPI pour vérifier si le token est valide
+    // === APPEL SYNCHRONE À L'AUTHAPI ===
+    // (utilise curl pour faire un POST HTTP vers le service d'auth)
     $ch = curl_init(AUTH_API_URL . '/verify.php');
     curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
     curl_setopt($ch, CURLOPT_POST, true);
@@ -49,7 +73,7 @@ function verifierToken() {
 
     $result = json_decode($response, true);
 
-    // Si le token est valide, on retourne les infos de l'utilisateur
+    // Si l'AuthAPI répond 200 + success=true, le token est valide
     if ($httpCode === 200 && $result['success'] == true) {
         return $result['user'];
     }
@@ -57,7 +81,33 @@ function verifierToken() {
     return null;
 }
 
-// On vérifie que l'utilisateur est connecté
+$uri = $_SERVER['REQUEST_URI'];
+$method = $_SERVER['REQUEST_METHOD'];
+
+// === ENDPOINT PUBLIC : liste des rencontres (AVANT vérification JWT) ===
+// Les utilisateurs non connectés peuvent voir les rencontres programmées
+if ($method === 'GET' && preg_match('#/api/rencontres$#', $uri)) {
+    try {
+        $rencontres = RencontreControleur::getInstance()->listerToutesLesRencontres();
+        $data = array_map(function($r) {
+            return [
+                'rencontre_id'  => $r->getRencontreId(),
+                'date_heure'    => $r->getDateEtHeure()->format('Y-m-d H:i:s'),
+                'equipe_adverse'=> $r->getEquipeAdverse(),
+                'adresse'       => $r->getAdresse(),
+                'lieu'          => $r->getLieu() != null ? $r->getLieu()->name : null,
+                'resultat'      => $r->getResultat() != null ? $r->getResultat()->name : null
+            ];
+        }, $rencontres);
+        echo json_encode(['success' => true, 'data' => $data]);
+    } catch (Exception $e) {
+        http_response_code(500);
+        echo json_encode(['success' => false, 'message' => 'Erreur serveur: ' . $e->getMessage()]);
+    }
+    exit;
+}
+
+// === VÉRIFICATION JWT (obligatoire pour tous autres endpoints) ===
 $utilisateurConnecte = verifierToken();
 if ($utilisateurConnecte === null) {
     http_response_code(401);
@@ -65,17 +115,25 @@ if ($utilisateurConnecte === null) {
     exit;
 }
 
-$uri = $_SERVER['REQUEST_URI'];
-$method = $_SERVER['REQUEST_METHOD'];
-
-// Si c'est un simple utilisateur, il a le droit qu'en lecture (GET)
+// === CONTRÔLE D'ACCÈS PAR RÔLE ===
+// Les 'user' ne peuvent que LIRE (GET)
+// Les 'admin' peuvent faire CRUD complet
+// C'est une autorisation simple ; on pourrait la raffiner par endpoint
 if ($utilisateurConnecte['role'] === 'user' && $method !== 'GET') {
     http_response_code(403);
     echo json_encode(['success' => false, 'message' => 'Accès refusé : droits insuffisants']);
     exit;
 }
 
-// Convertir un joueur en tableau
+
+// === FONCTIONS DE SÉRIALISATION ===
+// Transforment les objets métier en tableaux associatifs JSON
+// (DAO retourne des objets, l'API retourne du JSON)
+
+/**
+ * Joueur → JSON
+ * Convertit DateTime en string et Enums en string.name
+ */
 function joueurToArray($joueur) {
     return [
         'joueur_id' => $joueur->getJoueurId(),
@@ -89,7 +147,9 @@ function joueurToArray($joueur) {
     ];
 }
 
-// Convertir une rencontre en tableau
+/**
+ * Rencontre → JSON
+ */
 function rencontreToArray($rencontre) {
     return [
         'rencontre_id' => $rencontre->getRencontreId(),
@@ -101,7 +161,10 @@ function rencontreToArray($rencontre) {
     ];
 }
 
-// Convertir une participation en tableau
+/**
+ * Participation → JSON
+ * Avec infos du joueur et de la rencontre (dénormalisation pour le client)
+ */
 function participationToArray($participation) {
     return [
         'participation_id' => $participation->getParticipationId(),
@@ -115,13 +178,46 @@ function participationToArray($participation) {
     ];
 }
 
-// Convertir un commentaire en tableau
+/**
+ * Commentaire → JSON
+ */
 function commentaireToArray($commentaire) {
     return [
         'commentaire_id' => $commentaire->getCommentaireId(),
         'contenu' => $commentaire->getContenu(),
         'date' => $commentaire->getDate()->format('Y-m-d H:i:s')
     ];
+}
+
+/**
+ * Validation des champs requis
+ *
+ * Vérifie que les champs demandés sont présents ET non vides dans $input.
+ * Si validation échoue : code 400 + message + exit.
+ * Évite d'avoir le même code try/catch partout.
+ *
+ * @param array $input - Données parsées du JSON (ou null si JSON invalide)
+ * @param array $champsRequis - Liste des champs qui doivent être présents
+ * @return bool - true si tout ok
+ */
+function validerChamps(?array $input, array $champsRequis): bool {
+    if ($input === null) {
+        http_response_code(400);
+        echo json_encode(['success' => false, 'message' => 'Corps de la requête JSON invalide ou manquant']);
+        exit;
+    }
+    $manquants = [];
+    foreach ($champsRequis as $champ) {
+        if (!isset($input[$champ]) || $input[$champ] === '') {
+            $manquants[] = $champ;
+        }
+    }
+    if (!empty($manquants)) {
+        http_response_code(400);
+        echo json_encode(['success' => false, 'message' => 'Champs manquants : ' . implode(', ', $manquants)]);
+        exit;
+    }
+    return true;
 }
 
 try {
@@ -146,7 +242,8 @@ try {
     // POST /api/joueurs - Créer un nouveau joueur
     if ($method === 'POST' && preg_match('#/api/joueurs$#', $uri)) {
         $input = json_decode(file_get_contents('php://input'), true);
-        
+        validerChamps($input, ['nom', 'prenom', 'numero_licence', 'date_naissance', 'taille', 'poids', 'statut']);
+
         $result = JoueurControleur::getInstance()->ajouterJoueur(
             $input['nom'],
             $input['prenom'],
@@ -170,7 +267,8 @@ try {
     if ($method === 'PUT' && preg_match('#/api/joueurs/(\d+)$#', $uri, $matches)) {
         $joueurId = (int)$matches[1];
         $input = json_decode(file_get_contents('php://input'), true);
-        
+        validerChamps($input, ['nom', 'prenom', 'numero_licence', 'date_naissance', 'taille', 'poids', 'statut']);
+
         $result = JoueurControleur::getInstance()->modifierJoueur(
             $joueurId,
             $input['nom'],
@@ -194,17 +292,25 @@ try {
     // DELETE /api/joueurs/{id} - Supprimer un joueur
     if ($method === 'DELETE' && preg_match('#/api/joueurs/(\d+)$#', $uri, $matches)) {
         $joueurId = (int)$matches[1];
+
+        // Impossible de supprimer un joueur qui a déjà participé à un match
+        if (ParticipationControleur::getInstance()->joueurADesParticipations($joueurId)) {
+            http_response_code(409);
+            echo json_encode(['success' => false, 'message' => 'Impossible de supprimer un joueur qui a déjà participé à un match']);
+            exit;
+        }
+
         $result = JoueurControleur::getInstance()->supprimerJoueur($joueurId);
-        
+
         if ($result) {
             echo json_encode(['success' => true, 'message' => 'Joueur supprimé avec succès']);
         } else {
-            http_response_code(500);
-            echo json_encode(['success' => false, 'message' => 'Erreur lors de la suppression']);
+            http_response_code(404);
+            echo json_encode(['success' => false, 'message' => 'Joueur introuvable']);
         }
         exit;
     }
-    
+
     // GET /api/joueurs/recherche - Rechercher des joueurs
     if ($method === 'GET' && preg_match('#/api/joueurs/recherche#', $uri)) {
         $recherche = $_GET['q'] ?? '';
@@ -237,7 +343,8 @@ try {
     // POST /api/rencontres - Créer une nouvelle rencontre
     if ($method === 'POST' && preg_match('#/api/rencontres$#', $uri)) {
         $input = json_decode(file_get_contents('php://input'), true);
-        
+        validerChamps($input, ['date_heure', 'equipe_adverse', 'adresse', 'lieu']);
+
         $result = RencontreControleur::getInstance()->ajouterRencontre(
             new \DateTime($input['date_heure']),
             $input['equipe_adverse'],
@@ -258,7 +365,8 @@ try {
     if ($method === 'PUT' && preg_match('#/api/rencontres/(\d+)$#', $uri, $matches)) {
         $rencontreId = (int)$matches[1];
         $input = json_decode(file_get_contents('php://input'), true);
-        
+        validerChamps($input, ['date_heure', 'equipe_adverse', 'adresse', 'lieu']);
+
         $result = RencontreControleur::getInstance()->modifierRencontre(
             $rencontreId,
             new \DateTime($input['date_heure']),
@@ -280,7 +388,8 @@ try {
     if ($method === 'PUT' && preg_match('#/api/rencontres/(\d+)/resultat$#', $uri, $matches)) {
         $rencontreId = (int)$matches[1];
         $input = json_decode(file_get_contents('php://input'), true);
-        
+        validerChamps($input, ['resultat']);
+
         $result = RencontreControleur::getInstance()->enregistrerResultat(
             $rencontreId,
             $input['resultat']
@@ -303,8 +412,8 @@ try {
         if ($result) {
             echo json_encode(['success' => true, 'message' => 'Rencontre supprimée avec succès']);
         } else {
-            http_response_code(500);
-            echo json_encode(['success' => false, 'message' => 'Erreur lors de la suppression']);
+            http_response_code(404);
+            echo json_encode(['success' => false, 'message' => 'Rencontre introuvable ou déjà jouée']);
         }
         exit;
     }
@@ -336,7 +445,8 @@ try {
     // POST /api/participations - Créer une nouvelle participation
     if ($method === 'POST' && preg_match('#/api/participations$#', $uri)) {
         $input = json_decode(file_get_contents('php://input'), true);
-        
+        validerChamps($input, ['joueur_id', 'rencontre_id', 'poste', 'titulaire_ou_remplacant']);
+
         $result = ParticipationControleur::getInstance()->assignerUnParticipant(
             (int)$input['joueur_id'],
             (int)$input['rencontre_id'],
@@ -357,7 +467,8 @@ try {
     if ($method === 'PUT' && preg_match('#/api/participations/(\d+)$#', $uri, $matches)) {
         $participationId = (int)$matches[1];
         $input = json_decode(file_get_contents('php://input'), true);
-        
+        validerChamps($input, ['poste', 'titulaire_ou_remplacant', 'joueur_id']);
+
         $result = ParticipationControleur::getInstance()->modifierParticipation(
             $participationId,
             Poste::fromName($input['poste']),
@@ -378,7 +489,8 @@ try {
     if ($method === 'PUT' && preg_match('#/api/participations/(\d+)/performance$#', $uri, $matches)) {
         $participationId = (int)$matches[1];
         $input = json_decode(file_get_contents('php://input'), true);
-        
+        validerChamps($input, ['performance']);
+
         $result = ParticipationControleur::getInstance()->mettreAJourLaPerformance(
             $participationId,
             $input['performance']
@@ -401,8 +513,8 @@ try {
         if ($result) {
             echo json_encode(['success' => true, 'message' => 'Participation supprimée avec succès']);
         } else {
-            http_response_code(500);
-            echo json_encode(['success' => false, 'message' => 'Erreur lors de la suppression']);
+            http_response_code(404);
+            echo json_encode(['success' => false, 'message' => 'Participation introuvable ou match déjà joué']);
         }
         exit;
     }
@@ -423,7 +535,8 @@ try {
     if ($method === 'POST' && preg_match('#/api/joueurs/(\d+)/commentaires$#', $uri, $matches)) {
         $joueurId = (int)$matches[1];
         $input = json_decode(file_get_contents('php://input'), true);
-        
+        validerChamps($input, ['contenu']);
+
         $result = CommentaireControleur::getInstance()->ajouterCommentaire(
             $input['contenu'],
             (string)$joueurId
@@ -446,8 +559,8 @@ try {
         if ($result) {
             echo json_encode(['success' => true, 'message' => 'Commentaire supprimé avec succès']);
         } else {
-            http_response_code(500);
-            echo json_encode(['success' => false, 'message' => 'Erreur lors de la suppression']);
+            http_response_code(404);
+            echo json_encode(['success' => false, 'message' => 'Commentaire introuvable']);
         }
         exit;
     }
@@ -494,6 +607,31 @@ try {
         exit;
     }
     
+    // GET /api/moi/evaluations - Mes évaluations dans les matchs joués (joueur connecté)
+    if ($method === 'GET' && preg_match('#/api/moi/evaluations$#', $uri)) {
+        $joueurId = $utilisateurConnecte['joueur_id'] ?? null;
+        if ($joueurId === null) {
+            http_response_code(403);
+            echo json_encode(['success' => false, 'message' => 'Votre compte n\'est pas lié à un joueur']);
+            exit;
+        }
+        $participations = ParticipationControleur::getInstance()->getEvaluationsJoueur((int)$joueurId);
+        $data = array_map(function($p) {
+            return [
+                'participation_id'       => $p->getParticipationId(),
+                'rencontre_id'           => $p->getRencontre()->getRencontreId(),
+                'date_heure'             => $p->getRencontre()->getDateEtHeure()->format('Y-m-d H:i:s'),
+                'equipe_adverse'         => $p->getRencontre()->getEquipeAdverse(),
+                'resultat_rencontre'     => $p->getRencontre()->getResultat() != null ? $p->getRencontre()->getResultat()->name : null,
+                'poste'                  => $p->getPoste()->name,
+                'titulaire_ou_remplacant'=> $p->getTitulaireOuRemplacant()->name,
+                'performance'            => $p->getPerformance() != null ? $p->getPerformance()->name : null
+            ];
+        }, $participations);
+        echo json_encode(['success' => true, 'data' => $data]);
+        exit;
+    }
+
     // 404 si endpoint non trouvé
     http_response_code(404);
     echo json_encode(['success' => false, 'message' => 'Endpoint non trouvé']);

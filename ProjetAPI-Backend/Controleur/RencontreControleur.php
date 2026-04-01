@@ -10,7 +10,7 @@ use R301\Modele\Rencontre\RencontreResultat;
 
 class RencontreControleur {
     private static ?RencontreControleur $instance = null;
-    private readonly RencontreDAO $rencontres;
+    private RencontreDAO $rencontres;
 
     private function __construct() {
         $this->rencontres = RencontreDAO::getInstance();
@@ -30,7 +30,7 @@ class RencontreControleur {
         RencontreLieu $lieu
     ) : bool {
 
-        if ($dateHeure < date("Y-m-d H:i:s")) {
+        if ($dateHeure < new DateTime()) {
             return false;
         } else {
             $rencontreAAjouter = new Rencontre(
@@ -95,7 +95,7 @@ class RencontreControleur {
     public function supprimerRencontre(int $rencontreId) : bool {
         $rencontreASupprimer = $this->rencontres->selectRencontreById($rencontreId);
 
-        if($rencontreASupprimer->getResultat() != null) {
+        if($rencontreASupprimer->estPassee()) {
             return false;
         } else {
             return $this->rencontres->supprimerRencontre($rencontreId);

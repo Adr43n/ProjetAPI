@@ -44,6 +44,9 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST["email"]) && isset($_PO
                     <input type="submit" value="Login"/>
                 </div>
             </form>
+            <div class="row" style="margin-top: 12px; text-align: center;">
+                <a href="<?= BASE_PATH ?>/rencontre">Continuer sans connexion (liste des matchs)</a>
+            </div>
         </div>
         <p><?php if (isset($erreur)) { echo $erreur; } ?></p>
     </div>

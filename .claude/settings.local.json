@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(php --version)",
+      "Bash(xargs grep:*)",
+      "Bash(find c:/xampp/htdocs/ProjetAPI/ProjetAPI-Backend -name \"*.php\" -exec sed -i 's/private readonly /private /g' {} \\\\;)",
+      "Bash(c:/xampp/php/php.exe --version)"
+    ]
+  }
+}

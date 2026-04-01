@@ -8,7 +8,7 @@ use R301\Modele\DatabaseHandler;
 
 class CommentaireDAO {
     private static ?CommentaireDAO $instance = null;
-    private readonly DatabaseHandler $database;
+    private DatabaseHandler $database;
 
     private function __construct() {
         $this->database = DatabaseHandler::getInstance();
@@ -58,6 +58,7 @@ class CommentaireDAO {
         $query = 'DELETE FROM commentaire WHERE commentaire_id = :commentaireId';
         $statement = $this->database->pdo()->prepare($query);
         $statement->bindValue(':commentaireId', $commentaireId);
-        return ($statement->execute());
+        $statement->execute();
+        return $statement->rowCount() > 0;
     }
 }

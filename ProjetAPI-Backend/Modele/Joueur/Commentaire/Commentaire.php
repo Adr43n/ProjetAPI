@@ -6,8 +6,8 @@ use R301\Modele\Joueur\Joueur;
 
 class Commentaire {
     private int $commentaireId;
-    private readonly string $contenu;
-    private readonly DateTime $date;
+    private string $contenu;
+    private DateTime $date;
 
     public function __construct(int $commentaireId, string $contenu, DateTime $date)
     {

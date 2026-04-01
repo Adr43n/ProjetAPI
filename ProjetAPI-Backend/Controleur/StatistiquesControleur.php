@@ -13,8 +13,8 @@ use R301\Modele\Statistiques\StatistiquesJoueurs;
 
 class StatistiquesControleur {
     private static ?StatistiquesControleur $instance = null;
-    private readonly RencontreControleur $rencontres;
-    private readonly ParticipationControleur $participations;
+    private RencontreControleur $rencontres;
+    private ParticipationControleur $participations;
 
     private function __construct() {
         $this->rencontres = RencontreControleur::getInstance();

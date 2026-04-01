@@ -1,6 +1,7 @@
 <?php
 namespace R301\Controleur;
 
+use R301\Modele\Joueur\JoueurStatut;
 use R301\Modele\Participation\FeuilleDeMatch;
 use R301\Modele\Participation\Participation;
 use R301\Modele\Participation\ParticipationDAO;
@@ -10,9 +11,9 @@ use R301\Modele\Participation\TitulaireOuRemplacant;
 
 class ParticipationControleur {
     private static ?ParticipationControleur $instance = null;
-    private readonly ParticipationDAO $participations;
-    private readonly JoueurControleur $joueurs;
-    private readonly RencontreControleur $rencontres;
+    private ParticipationDAO $participations;
+    private JoueurControleur $joueurs;
+    private RencontreControleur $rencontres;
 
     private function __construct() {
         $this->participations = ParticipationDAO::getInstance();
@@ -31,6 +32,18 @@ class ParticipationControleur {
         return $this->participations->lejoueurEstDejaSurLaFeuilleDeMatch($rencontreId, $joueurId);
     }
 
+    public function joueurADesParticipations(int $joueurId): bool {
+        return $this->participations->joueurADesParticipations($joueurId);
+    }
+
+    // Retourne les participations avec évaluation du joueur pour les matchs joués
+    public function getEvaluationsJoueur(int $joueurId): array {
+        $participations = $this->participations->selectParticipationsByJoueurId($joueurId);
+        return array_filter($participations, function($p) {
+            return $p->getRencontre()->estPassee();
+        });
+    }
+
     public function listerToutesLesParticipations() : array {
         return $this->participations->selectAllParticipations();
     }
@@ -45,12 +58,18 @@ class ParticipationControleur {
         Poste $poste,
         TitulaireOuRemplacant $titulaireOuRemplacant
     ) : bool {
+        $joueur = $this->joueurs->getJoueurById($joueurId);
+
+        // Seuls les joueurs ACTIFS peuvent être sélectionnés
+        if ($joueur->getStatut() !== JoueurStatut::ACTIF) {
+            return false;
+        }
+
         if ($this->participations->lePosteEstDejaOccupe($rencontreId, $poste, $titulaireOuRemplacant)
             || $this->lejoueurEstDejaSurLaFeuilleDeMatch($rencontreId, $joueurId)
         ) {
             return false;
         } else {
-            $joueur = $this->joueurs->getJoueurById($joueurId);
             $rencontre = $this->rencontres->getRenconterById($rencontreId);
 
             $participationACreer = new Participation(
@@ -74,6 +93,11 @@ class ParticipationControleur {
     ) : bool {
         $participationAModifier = $this->participations->selectParticipationById($participationId);
 
+        // Impossible de modifier la feuille de match une fois le match joué
+        if ($participationAModifier->getRencontre()->estPassee()) {
+            return false;
+        }
+
         if ($participationAModifier->getParticipant()->getJoueurId() != $joueurId) {
             $participationAModifier->setParticipant($this->joueurs->getJoueurById($joueurId));
         }
@@ -85,6 +109,13 @@ class ParticipationControleur {
     }
 
     public function supprimerLaParticipation(int $participationId) : bool {
+        $participation = $this->participations->selectParticipationById($participationId);
+
+        // Impossible de retirer un joueur de la feuille une fois le match joué
+        if ($participation->getRencontre()->estPassee()) {
+            return false;
+        }
+
         return $this->participations->deleteParticipation($participationId);
     }
 

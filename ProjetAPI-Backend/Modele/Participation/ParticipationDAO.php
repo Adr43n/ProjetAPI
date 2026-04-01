@@ -13,9 +13,9 @@ use R301\Modele\Rencontre\RencontreResultat;
 
 class ParticipationDAO {
     private static ?ParticipationDAO $instance = null;
-    private readonly DatabaseHandler $database;
-    private readonly JoueurDAO $joueurs;
-    private readonly RencontreDAO $rencontres;
+    private DatabaseHandler $database;
+    private JoueurDAO $joueurs;
+    private RencontreDAO $rencontres;
 
     private function __construct() {
         $this->database = DatabaseHandler::getInstance();
@@ -124,7 +124,8 @@ class ParticipationDAO {
         $query = 'DELETE FROM participation WHERE participation_id = :participationId';
         $statement=$this->database->pdo()->prepare($query);
         $statement->bindValue(':participationId', $participationId);
-        return $statement->execute();
+        $statement->execute();
+        return $statement->rowCount() > 0;
     }
 
     public function lePosteEstDejaOccupe(int $rencontreId, Poste $poste, TitulaireOuRemplacant $titulaireOuRemplacant) : bool {
@@ -145,7 +146,7 @@ class ParticipationDAO {
 
     public function lejoueurEstDejaSurLaFeuilleDeMatch(int $rencontreId, int $joueur_id) : bool {
         $query = '
-                SELECT * FROM participation 
+                SELECT * FROM participation
                 WHERE rencontre_id = :rencontreId AND joueur_id = :joueur_id;
         ';
         $statement=$this->database->pdo()->prepare($query);
@@ -156,5 +157,28 @@ class ParticipationDAO {
         } else {
             exit();
         }
+    }
+
+    public function selectParticipationsByJoueurId(int $joueurId): array {
+        $query = 'SELECT * FROM participation WHERE joueur_id = :joueurId';
+        $statement = $this->database->pdo()->prepare($query);
+        $statement->bindValue(':joueurId', $joueurId);
+        if ($statement->execute()) {
+            return array_map(
+                function($participation) { return $this->mapToParticipation($participation); },
+                $statement->fetchAll(PDO::FETCH_ASSOC)
+            );
+        }
+        return [];
+    }
+
+    public function joueurADesParticipations(int $joueurId): bool {
+        $query = 'SELECT 1 FROM participation WHERE joueur_id = :joueurId LIMIT 1';
+        $statement = $this->database->pdo()->prepare($query);
+        $statement->bindValue(':joueurId', $joueurId);
+        if ($statement->execute()) {
+            return $statement->fetch() !== false;
+        }
+        return false;
     }
 }
